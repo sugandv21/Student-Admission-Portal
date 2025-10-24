@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Application #{{app.id}}{% endblock %}
+{% block content %}
+<h2>Application #{{ app.id }}</h2>
+<div class="card">
+  <div class="card-body">
+    <p><strong>Name:</strong> {{ app.full_name }}</p>
+    <p><strong>Email:</strong> {{ app.email }}</p>
+    <p><strong>Phone:</strong> {{ app.phone }}</p>
+    <p><strong>DOB:</strong> {{ app.dob.strftime("%Y-%m-%d") }}</p>
+    <p><strong>Address:</strong> {{ app.address }}</p>
+    <p><strong>Course:</strong> {{ app.course }}</p>
+    <p><strong>Statement:</strong><br>{{ app.statement|default("—", true) }}</p>
+    <p><strong>Status:</strong>
+      {% if app.status == "PENDING" %}
+        <span class="badge text-bg-warning">PENDING</span>
+      {% elif app.status == "APPROVED" %}
+        <span class="badge text-bg-success">APPROVED</span>
+      {% else %}
+        <span class="badge text-bg-danger">REJECTED</span>
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+{% if app.status == "PENDING" %}
+<form method="post" action="{{ url_for('approve_application', app_id=app.id) }}" class="d-inline">
+  <button class="btn btn-success mt-3">Approve</button>
+</form>
+<form method="post" action="{{ url_for('reject_application', app_id=app.id) }}" class="d-inline">
+  <button class="btn btn-danger mt-3">Reject</button>
+</form>
+{% else %}
+<a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary mt-3">Back</a>
+{% endif %}
+{% endblock %}

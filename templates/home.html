@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Home · Student Admission Portal{% endblock %}
+{% block content %}
+<div class="p-5 mb-4 bg-light rounded-3">
+  <div class="container-fluid py-5">
+    <h1 class="display-6 fw-bold">Welcome to the Student Admission Portal</h1>
+    <p class="col-md-8 fs-5">Apply online in minutes. Track your application via email updates.</p>
+    <a class="btn btn-primary btn-lg" href="{{ url_for('register') }}">Start Application</a>
+  </div>
+</div>
+{% endblock %}
