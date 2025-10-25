@@ -45,39 +45,97 @@ def create_app():
     def home():
         return render_template("home.html")
 
+    # @app.route("/register", methods=["GET", "POST"])
+    # def register():
+    #     form = RegistrationForm()
+    #     if form.validate_on_submit():
+    #         appn = StudentApplication(
+    #             full_name=form.full_name.data.strip(),
+    #             email=form.email.data.strip().lower(),
+    #             phone=form.phone.data.strip(),
+    #             dob=form.dob.data,
+    #             address=form.address.data.strip(),
+    #             course=form.course.data.strip(),
+    #             statement=form.statement.data.strip() if form.statement.data else None,
+    #             status="PENDING",
+    #             created_at=datetime.utcnow(),
+    #         )
+    #         db.session.add(appn)
+    #         db.session.commit()
+
+    #         # Email applicant (received)
+    #         try:
+    #             send_app_received_email(appn)
+    #         except Exception as e:
+    #             print("[MAIL] Applicant confirmation error:", e)
+
+    #         # Email admin (new application notification)
+    #         try:
+    #             send_admin_new_application_email(appn)
+    #         except Exception as e:
+    #             print("[MAIL] Admin notification error:", e)
+
+    #         return redirect(url_for("success"))
+
+    #     return render_template("register.html", form=form)
+
     @app.route("/register", methods=["GET", "POST"])
     def register():
         form = RegistrationForm()
-        if form.validate_on_submit():
+    
+        # Guard validation (catches email_validator import or CSRF issues)
+        try:
+            valid_submit = form.validate_on_submit()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print("[FORM] validate_on_submit error:", repr(e))
+            flash("There was a problem validating the form. Please check your inputs.", "danger")
+            return render_template("register.html", form=form)
+    
+        if valid_submit:
             appn = StudentApplication(
                 full_name=form.full_name.data.strip(),
                 email=form.email.data.strip().lower(),
                 phone=form.phone.data.strip(),
                 dob=form.dob.data,
                 address=form.address.data.strip(),
-                course=form.course.data.strip(),
-                statement=form.statement.data.strip() if form.statement.data else None,
+                course=(form.course.data or "").strip(),
+                statement=(form.statement.data.strip() if form.statement.data else None),
                 status="PENDING",
                 created_at=datetime.utcnow(),
             )
-            db.session.add(appn)
-            db.session.commit()
-
-            # Email applicant (received)
+            # Robust commit (catches SQLite write errors)
+            try:
+                db.session.add(appn)
+                db.session.commit()
+            except Exception as e:
+                import traceback
+                db.session.rollback()
+                print("[DB] Commit error:", repr(e))
+                traceback.print_exc()
+                flash("Could not save your application. Please try again in a moment.", "danger")
+                return render_template("register.html", form=form)
+    
+            # Best-effort emails (won’t crash)
             try:
                 send_app_received_email(appn)
             except Exception as e:
                 print("[MAIL] Applicant confirmation error:", e)
-
-            # Email admin (new application notification)
             try:
                 send_admin_new_application_email(appn)
             except Exception as e:
                 print("[MAIL] Admin notification error:", e)
-
+    
             return redirect(url_for("success"))
-
+    
+        # Show validation issues (no 500)
+        if request.method == "POST":
+            print("[FORM] Validation errors:", form.errors)
+            flash("Please correct the highlighted fields.", "warning")
+    
         return render_template("register.html", form=form)
+
 
     @app.route("/success")
     def success():
@@ -178,3 +236,4 @@ app = create_app()
 if __name__ == "__main__":
     # Local run
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
+
